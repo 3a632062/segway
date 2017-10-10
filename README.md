@@ -1,7 +1,5 @@
 # Segway
-This repository will hold code for robots balancing on two wheels, made with various robotics platforms.
-
-This code will eventually supersede all of the programs for balancing robots currently available on [Robotsquare] (http://robotsquare.com). If you're not sure how to use this code, please refer to the existing code and associated tutorials for now.
+This repository holds code for robots that balance on two wheels, made with various robotics platforms.
 
 ## Currently available platforms
 
@@ -14,18 +12,15 @@ This code will eventually supersede all of the programs for balancing robots cur
         - chmod +x segway.py
      - Now you can run the program: ./segway.py   
      - Or, use the [VS Code IDE](https://github.com/ev3dev/vscode-ev3dev-browser) for convenience.
-     - Wait until you see something on the display/command line
+     - Wait for the program to start (up to 10 seconds)
      - Hold segway up right with its resting wheels on the ground and press the Touch Sensor
      - Press the Touch Sensor again to stop. Then again to restart, if you like.
 
+- LEGO MINDSTORMS EV3 (standard EV3 software)
+  - [See this page](http://robotsquare.com/2014/07/01/tutorial-ev3-self-balancing-robot/) for instructions, videos, and the code
+
 - VEX IQ (RobotC):
   - [Building instructions] (http://robotsquare.com/2016/04/06/tutorial-segway-iq/)
+  - [Code](https://github.com/laurensvalk/segway/blob/master/vex-iq/robotc/segway-remote.c)
   - [Video] (https://www.youtube.com/watch?v=1P7SWxnKF_A)
   - Instructions for running this program are included in the code.
-
-## Work in progress
-
-- LEGO MINDSTORMS EV3 (EV3-G):  Currently available in legacy segway code
-- LEGO MINDSTORMS EV3 (RobotC): Awaiting some gyro issues with RobotC
-- LEGO MINDSTORMS NXT (RobotC): Currently available in legacy segway code
-- LEGO MINDSTORMS NXT (NXT-G):  Currently available in legacy segway code
