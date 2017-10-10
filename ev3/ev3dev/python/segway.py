@@ -192,7 +192,7 @@ while True:
     ########################################################################    
 
     # Remember start time
-    tProgramStart = time.clock()
+    tProgramStart = time.time()
 
     # Initial fast read touch sensor value    
     touchSensorPressed = False 
@@ -204,7 +204,7 @@ while True:
         ##  Loop info
         ###############################################################
         loopCount = loopCount + 1
-        tLoopStart = time.clock()  
+        tLoopStart = time.time()  
 
         ###############################################################
         ##
@@ -231,10 +231,10 @@ while True:
             steering =  0
         elif (buttonCode == 6):
             speed    =  0
-            steering =  steer_max_right
+            steering = -steer_max_right
         elif (buttonCode == 7):
             speed    =  0
-            steering = -steer_max_right            
+            steering = steer_max_right            
         elif (buttonCode == 8):
             speed    = -speed_max
             steering = 0
@@ -265,7 +265,7 @@ while True:
         ###############################################################
         
         motorAngularSpeed = (motorAngle - motorAngleHistory[0])/(timing.motorAngleHistoryLength*loopTimeSec)
-        motorAngularSpeedError = motorAngularSpeed - motorAngularSpeedReference
+        motorAngularSpeedError = motorAngularSpeed# - motorAngularSpeedReference # Uncommenting this leads to a raher abrubt change in speed when using the remote. So I'll leave it commented until I add some code that gradually increases ths reference when a button is pressed or depressed 
         motorAngleHistory.append(motorAngle)
 
         ###############################################################
@@ -308,7 +308,7 @@ while True:
         ##  Busy wait for the loop to complete
         ###############################################################
     
-        while(time.clock() - tLoopStart <  loopTimeSec):
+        while(time.time() - tLoopStart <  loopTimeSec):
             time.sleep(0.0001) 
         
     ########################################################################
@@ -318,7 +318,7 @@ while True:
     ######################################################################## 
     
     # Loop end time, for stats
-    tProgramEnd = time.clock()  
+    tProgramEnd = time.time()  
     
     # Turn off the motors    
     FastWrite(motorDutyCycleLeft ,0)

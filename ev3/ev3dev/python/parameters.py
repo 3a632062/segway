@@ -1,14 +1,14 @@
 class Gains:
     # For every radian (57 degrees) we lean forward,            apply this amount of duty cycle.
-    GyroAngle                  = 5000
+    GyroAngle                  = 2000
     # For every radian/s we fall forward,                       apply this amount of duty cycle.
-    GyroRate                   = 95   
+    GyroRate                   = 120   
     # For every radian we are ahead of the reference,           apply this amount of duty cycle
-    MotorAngle                 = 13
+    MotorAngle                 = 7
     # For every radian/s drive faster than the reference value, apply this amount of duty cycle
-    MotorAngularSpeed          = 2.5*1.5
+    MotorAngularSpeed          = 9
     # For every radian x s of accumulated motor angle,          apply this amount of duty cycle
-    MotorAngleErrorAccumulated = 2     
+    MotorAngleErrorAccumulated = 3     
 
 
 class Power:
@@ -17,6 +17,6 @@ class Power:
 
 class Timing:
     #Timing settings for the program
-    loopTimeMiliSec             = 15                    # Time of each loop, measured in miliseconds.
+    loopTimeMiliSec             = 30                    # Time of each loop, measured in miliseconds.
     motorAngleHistoryLength     = 5                     # Number of previous motor angle samples we keep track of.
     gyroDriftCompensationFactor = 0.05      
