@@ -1,6 +1,6 @@
 class Gains:
     # For every radian (57 degrees) we lean forward,            apply this amount of duty cycle.
-    GyroAngle                  = 2000
+    GyroAngle                  = 1700
     # For every radian/s we fall forward,                       apply this amount of duty cycle.
     GyroRate                   = 120   
     # For every radian we are ahead of the reference,           apply this amount of duty cycle
@@ -13,7 +13,7 @@ class Gains:
 
 class Power:
     voltageNominal = 8.0
-    frictionOffsetNominal = 5
+    frictionOffsetNominal = 3
 
 class Timing:
     #Timing settings for the program
