@@ -21,7 +21,7 @@ def FastWrite(outfile,value):
     outfile.write(str(int(value)))
     outfile.flush()    
 
-# Debug print (https://stackoverflow.com/a/14981125)
+# Debug print
 def eprint(*args, **kwargs):
     print(*args, file=sys.stderr, **kwargs)
 
@@ -57,8 +57,6 @@ touchSensor         = ev3.TouchSensor()
 touchSensorValueRaw = open(touchSensor._path + "/value0", "rb")
 
 # IR Buttons setup
-# irRemote            = ev3.RemoteControl(channel=1)
-# irRemoteValueRaw    = open(irRemote._path + "/value0", "rb")
 irRemote          = ev3.InfraredSensor()
 irRemote.mode     = irRemote.MODE_IR_REMOTE
 irRemoteValueRaw  = open(irRemote._path + "/value0", "rb") 
@@ -72,6 +70,41 @@ motorRight = ev3.LargeMotor('outB')
 #############################################################################
 
 while True:
+
+    ########################################################################
+    ## Read/reload Parameters
+    ########################################################################    
+
+    # Reload parameters class
+    importlib.reload(parameters)
+    powerParameters = parameters.Power()
+    gyroParameters  = parameters.Gyro()
+    motorParameters = parameters.Motor()
+    gains           = parameters.Gains()
+    timing          = parameters.Timing()
+
+    # Define Math constants and conversions
+    radiansPerDegree               = 3.14159/180                                                # The number of radians in a degree.
+    radiansPerSecondPerRawGyroUnit = gyroParameters.degPerSecondPerRawGyroUnit*radiansPerDegree # Rate in radians/sec per gyro output unit
+    radiansPerRawMotorUnit         = motorParameters.degPerRawMotorUnit*radiansPerDegree        # Angle in radians per motor encoder unit
+    radPerSecPerPercentSpeed       = motorParameters.RPMperPerPercentSpeed*6*radiansPerDegree   # Actual speed in radians/sec per unit of motor speed    
+
+    # Read battery voltage
+    voltageIdle = powerSupply.measured_volts
+    voltageCompensation = powerParameters.voltageNominal/voltageIdle
+
+    # Offset to limit friction deadlock
+    frictionOffset = int(round(powerParameters.frictionOffsetNominal*voltageCompensation))
+
+    #Timing settings for the program
+    loopTimeSec             = timing.loopTimeMiliSec/1000  # Time of each loop, measured in seconds.
+    loopCount               = 0                            # Loop counter, starting at 0
+
+    # A deque (a fifo array) which we'll use to keep track of previous motor positions, which we can use to calculate the rate of change (speed)
+    motorAngleHistory = deque([0],timing.motorAngleHistoryLength)
+
+    # The rate at which we'll update the gyro offset (precise definition given in docs)
+    gyroDriftCompensationRate      = timing.gyroDriftCompensationFactor*loopTimeSec*radiansPerSecondPerRawGyroUnit
 
     ########################################################################
     ## Hardware (Re-)Config
@@ -95,19 +128,7 @@ while True:
     ## Definitions and Initialization variables
     ########################################################################    
                         
-    #Math constants
-    radiansPerDegree               = 3.14159/180                                   # The number of radians in a degree.
-
-    #Platform specific constants and conversions
-    degPerSecondPerRawGyroUnit     = 1                                             # For the LEGO EV3 Gyro in Rate mode, 1 unit = 1 deg/s
-    radiansPerSecondPerRawGyroUnit = degPerSecondPerRawGyroUnit*radiansPerDegree   # Express the above as the rate in rad/s per gyro unit
-    degPerRawMotorUnit             = 1                                             # For the LEGO EV3 Large Motor 1 unit = 1 deg
-    radiansPerRawMotorUnit         = degPerRawMotorUnit*radiansPerDegree           # Express the above as the angle in rad per motor unit
-    RPMperPerPercentSpeed          = 1.7                                           # On the EV3, "1% speed" corresponds to 1.7 RPM (if speed control were enabled)
-    degPerSecPerPercentSpeed       = RPMperPerPercentSpeed*360/60                  # Convert this number to the speed in deg/s per "percent speed"
-    radPerSecPerPercentSpeed       = degPerSecPerPercentSpeed * radiansPerDegree   # Convert this number to the speed in rad/s per "percent speed"
-
-    # Variables representing physical signals (more info on these in the docs)
+    # Reset variables representing physical signals
     motorAngleRaw              = 0 # The angle of "the motor", measured in raw units (degrees for the EV3). We will take the average of both motor positions as "the motor" angle, wich is essentially how far the middle of the robot has traveled.
     motorAngle                 = 0 # The angle of the motor, converted to radians (2*pi radians equals 360 degrees).
     motorAngleReference        = 0 # The reference angle of the motor. The robot will attempt to drive forward or backward, such that its measured position equals this reference (or close enough).
@@ -122,6 +143,7 @@ while True:
     gyroEstimatedAngle         = 0 # The gyro doesn't measure the angle of the robot, but we can estimate this angle by keeping track of the gyroRate value in time
     gyroOffset                 = 0 # Over time, the gyro rate value can drift. This causes the sensor to think it is moving even when it is perfectly still. We keep track of this offset.
 
+    # Print start and stop instructions
     eprint("Hold robot upright. Press Touch Sensor to start. Or any button to exit.")
 
     # Wait for Touch Sensor or any Button Press
@@ -135,42 +157,12 @@ while True:
     # Otherwise, if it was the Touch Sensor, wait for release and proceed to calibration and balancing     
     while touchSensor.is_pressed:
         time.sleep(0.01)
-    
-    ########################################################################
-    ## Read/reload Parameters
-    ########################################################################    
-
-    # Reload parameters class
-    importlib.reload(parameters)
-
-    powerParameters = parameters.Power()
-    gains           = parameters.Gains()
-    timing          = parameters.Timing()
-
-    # Read battery voltage
-    voltageIdle = powerSupply.measured_volts
-    voltageCompensation = powerParameters.voltageNominal/voltageIdle
-
-    # Offset to limit friction deadlock
-    frictionOffset = int(round(powerParameters.frictionOffsetNominal*voltageCompensation))
-
-    #Timing settings for the program
-    loopTimeSec             = timing.loopTimeMiliSec/1000  # Time of each loop, measured in seconds.
-    loopCount               = 0                     # Loop counter, starting at 0
-
-    # A deque (a fifo array) which we'll use to keep track of previous motor positions, which we can use to calculate the rate of change (speed)
-    motorAngleHistory = deque([0],timing.motorAngleHistoryLength)
-
-    # The rate at which we'll update the gyro offset (precise definition given in docs)
-    gyroDriftCompensationRate      = timing.gyroDriftCompensationFactor*loopTimeSec*radiansPerSecondPerRawGyroUnit
-
 
     ########################################################################
     ## Calibrate Gyro
     ########################################################################    
         
-    eprint("-----------------------------------")      
-    eprint("Calibrating...")
+    eprint("-------\nCalibrating\n-------")      
 
     #As you hold the robot still, determine the average sensor value of 100 samples
     gyroRateCalibrateCount = 100
@@ -179,11 +171,9 @@ while True:
         time.sleep(0.01)
     gyroOffset = gyroOffset/gyroRateCalibrateCount 
         
-    # Print the result   
+    # Print calibration result   
     eprint("GyroOffset: ",gyroOffset)   
-    eprint("-----------------------------------")    
-    eprint("GO!") 
-    eprint("-----------------------------------") 
+    eprint("-----------\nGo!\n-----------")    
 
     ########################################################################
     ## Balancing Loop
@@ -331,6 +321,6 @@ while True:
     eprint("Loop time:", tLoop*1000,"ms")
 
     # Print a stop message
-    eprint("-----------------------------------")   
+    eprint("-----------\nStop\n----------")   
     eprint("STOP")
     eprint("-----------------------------------")     

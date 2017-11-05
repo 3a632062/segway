@@ -10,6 +10,16 @@ class Gains:
     # For every radian x s of accumulated motor angle,          apply this amount of duty cycle
     MotorAngleErrorAccumulated = 3     
 
+class Gyro:
+    # For the LEGO EV3 Gyro in Rate mode, 1 unit = 1 deg/s
+    degPerSecondPerRawGyroUnit     = 1                                             
+
+class Motor:
+    # For the LEGO EV3 Large Motor 1 unit = 1 deg   
+    degPerRawMotorUnit             = 1                                             
+
+    # On the EV3, "1% speed" corresponds to 1.7 RPM (if speed control were enabled)
+    RPMperPerPercentSpeed          = 1.7                                           
 
 class Power:
     voltageNominal = 8.0
