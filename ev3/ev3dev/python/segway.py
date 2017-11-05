@@ -47,9 +47,16 @@ def SetDuty(motorDutyFileHandle, duty):
 powerSupply = ev3.PowerSupply()
 buttons = ev3.Button()
 
-# Gyro Sensor setup
-gyroSensor          = ev3.GyroSensor()
-gyroSensor.mode     = gyroSensor.MODE_GYRO_RATE
+# Gyro Sensor setup. Possibly make this more generic to better support more sensors.
+try: # Set LEGO gyro to Gyro Rate mode, if attached
+    gyroSensor          = ev3.GyroSensor()
+    gyroSensor.mode     = gyroSensor.MODE_GYRO_RATE
+    gyroType            = 'LEGO-EV3-Gyro'
+except: # Assume HiTechnic Gyro is attached if LEGO Gyro not found
+    gyroSensor          = ev3.Sensor(address="ev3-ports:in2")
+    gyroType            = 'HITECHNIC-NXT-Gyro'
+
+# Open gyro rate sensor value file
 gyroSensorValueRaw  = open(gyroSensor._path + "/value0", "rb")   
 
 # Touch Sensor setup
@@ -78,7 +85,7 @@ while True:
     # Reload parameters class
     importlib.reload(parameters)
     powerParameters = parameters.Power()
-    gyroParameters  = parameters.Gyro()
+    gyroParameters  = parameters.Gyro(gyroType)
     motorParameters = parameters.Motor()
     gains           = parameters.Gains()
     timing          = parameters.Timing()
@@ -322,5 +329,3 @@ while True:
 
     # Print a stop message
     eprint("-----------\nStop\n----------")   
-    eprint("STOP")
-    eprint("-----------------------------------")     

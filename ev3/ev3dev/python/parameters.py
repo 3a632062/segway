@@ -11,8 +11,13 @@ class Gains:
     MotorAngleErrorAccumulated = 3     
 
 class Gyro:
-    # For the LEGO EV3 Gyro in Rate mode, 1 unit = 1 deg/s
-    degPerSecondPerRawGyroUnit     = 1                                             
+    def __init__(self, gyroType):
+        if(gyroType == 'LEGO-EV3-Gyro'):   
+            # Amount of deg/s per sensor unit For the LEGO EV3 Gyro
+            self.degPerSecondPerRawGyroUnit     =  1       
+        elif(gyroType == 'HITECHNIC-NXT-Gyro'): 
+            # Amount of deg/s per sensor unit for the HiTechnic NXT Gyro
+            self.degPerSecondPerRawGyroUnit     =  0.2084 
 
 class Motor:
     # For the LEGO EV3 Large Motor 1 unit = 1 deg   
@@ -22,7 +27,10 @@ class Motor:
     RPMperPerPercentSpeed          = 1.7                                           
 
 class Power:
+    # Voltage with respect to which we tune the parameters
     voltageNominal = 8.0
+
+    # Add this amount to any positive duty cycle; subtract this amount from any negative duty cycle
     frictionOffsetNominal = 3
 
 class Timing:
