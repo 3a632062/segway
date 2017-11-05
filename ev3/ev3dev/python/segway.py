@@ -45,7 +45,7 @@ def SetDuty(motorDutyFileHandle, duty):
 
 # EV3 Brick
 powerSupply = ev3.PowerSupply()
-# buttons = ev3.Button()
+buttons = ev3.Button()
 
 # Gyro Sensor setup
 gyroSensor          = ev3.GyroSensor()
@@ -124,15 +124,13 @@ while True:
 
     eprint("Hold robot upright. Press Touch Sensor to start. Or any button to exit.")
 
-    # Buttons currently broken in ev3dev  
-
     # Wait for Touch Sensor or any Button Press
-    while not touchSensor.is_pressed: #and not buttons.any():
+    while not touchSensor.is_pressed and not buttons.any():
         time.sleep(0.01)
 
-    # # If any of the buttons was pressed, exit the program by breaking the outer loop
-    # if buttons.any():
-    #     break
+    # If any of the buttons was pressed, exit the program by breaking the outer loop
+    if buttons.any():
+        break
 
     # Otherwise, if it was the Touch Sensor, wait for release and proceed to calibration and balancing     
     while touchSensor.is_pressed:
