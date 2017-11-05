@@ -5,6 +5,7 @@ from collections import deque
 import ev3dev.ev3 as ev3
 import parameters
 import importlib
+import json
 
 ########################################################################
 ## File I/O functions
@@ -166,6 +167,23 @@ while True:
         time.sleep(0.01)
 
     ########################################################################
+    ## Create empty datalogs
+    ########################################################################    
+
+    datalog = {
+       'timeStart' : time.strftime("UTC: %Y-%m-%d-%H:%M:%S"),
+       'tLoopStart' : [], 
+       'gyroRate' : [], 
+       'gyroEstimatedAngle' : [], 
+       'motorAngle' : [],
+       'motorAngleError' : [],
+       'motorAngularSpeed' : [],
+       'motorAngleErrorAccumulated' : [],
+       'motorDutyCycle' : [], 
+       'gyroOffset': []
+    }
+
+    ########################################################################
     ## Calibrate Gyro
     ########################################################################    
         
@@ -199,7 +217,7 @@ while True:
         ##  Loop info
         ###############################################################
         loopCount = loopCount + 1
-        tLoopStart = time.time()  
+        tLoopStart = time.time() - tProgramStart
 
         ###############################################################
         ##
@@ -300,10 +318,24 @@ while True:
         touchSensorPressed = FastRead(touchSensorValueRaw) 
 
         ###############################################################
+        ##  Append data datalog
+        ###############################################################
+
+        datalog['tLoopStart']                .append(tLoopStart)
+        datalog['gyroRate']                  .append(gyroRate)
+        datalog['gyroEstimatedAngle']        .append(gyroEstimatedAngle)
+        datalog['motorAngle']                .append(motorAngle)
+        datalog['motorAngleError']           .append(motorAngleError)
+        datalog['motorAngularSpeed']         .append(motorAngularSpeed)
+        datalog['motorAngleErrorAccumulated'].append(motorAngleErrorAccumulated)
+        datalog['motorDutyCycle']            .append(motorDutyCycle)
+        datalog['gyroOffset']                .append(gyroOffset)
+
+        ###############################################################
         ##  Busy wait for the loop to complete
         ###############################################################
     
-        while(time.time() - tLoopStart <  loopTimeSec):
+        while(time.time()-tProgramStart - tLoopStart <  loopTimeSec):
             time.sleep(0.0001) 
         
     ########################################################################
@@ -327,5 +359,9 @@ while True:
     tLoop = (tProgramEnd - tProgramStart)/loopCount
     eprint("Loop time:", tLoop*1000,"ms")
 
+    # Write datalog file
+    with open('datalog.txt', 'w') as f:
+        f.write(json.dumps(datalog))
+
     # Print a stop message
-    eprint("-----------\nStop\n----------")   
+    eprint("----------\nStopped\n--------")   
