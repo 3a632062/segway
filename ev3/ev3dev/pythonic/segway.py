@@ -2,7 +2,7 @@
 """Segway program."""
 
 # Imports
-from time import sleep
+from time import sleep, time
 from ev3devlight.sensors import Gyro
 from ev3devlight.motors import Motor
 from filters import Highpass, Differentiator, Integrator
@@ -18,8 +18,8 @@ gyro = Gyro('in2', read_rate=True, read_angle=False, calibrate=True)
 angle = 0
 
 # Configure filters
-looptime = 0.01
-highpass = Highpass(looptime, 0, 0.01)
+looptime = 0.02
+highpass = Highpass(looptime, 0, 0.02)
 differentiator = Differentiator(looptime, 5)
 integrator = Integrator(looptime)
 
@@ -30,13 +30,16 @@ cm_per_degree = 3.14/180*wheel_diameter/2
 busytime = 0.005
 
 # Control gains
-gain_angle = 70
+gain_angle = 80
 gain_rate = 1.2
 gain_distance = 15
 gain_speed = 3
 
 # Main loop
 while True:
+    # Loop start
+    start = time()
+
     # Body angle
     rate = highpass.filter(gyro.rate)
     angle = integrator.integral(rate)
@@ -54,5 +57,6 @@ while True:
     left.duty(duty)
     right.duty(duty)
 
-    # Sleep
-    sleep(looptime-busytime)
+    # Sleep until loop complete
+    while time()-start < looptime:
+        sleep(0.002)
