@@ -72,3 +72,4 @@ ev3/ev3dev/pythonic/hardware/*
 ev3/ev3dev/pythonic/.vscode/.ropeproject/config.py
 ev3/ev3dev/pythonic/.vscode/.ropeproject/objectdb
 ev3/ev3dev/pythonic/Filter.ipynb
+ev3/ev3dev/pythonic/old.py
