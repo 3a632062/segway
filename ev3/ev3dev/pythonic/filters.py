@@ -1,6 +1,30 @@
 """Filters for constantly sampled data/measurements."""
 
 
+class Calibrator():
+    """Find offset in a stationary signal."""
+
+    def __init__(self):
+        """Initialize empty set of samples."""
+        self.samples = []
+
+    def add_sample(self, sample):
+        """Add sample to list."""
+        self.samples.append(sample)
+
+    @property
+    def average(self):
+        """Return average value of all stored samples."""
+        # Calculate the average only if there is at least one sample
+        if len(self.samples) > 0:
+            # The average is the sum of the samples divided
+            # by the number of samples.
+            return sum(self.samples)/len(self.samples)
+        else:
+            # Return zero if there are no samples yet.
+            return 0
+
+
 class Highpass():
     """Highpass filter that removes near-constant bias."""
 
