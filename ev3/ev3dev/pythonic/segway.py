@@ -3,10 +3,10 @@
 
 # Imports
 from time import sleep, time
-from ev3devlight.sensors import Gyro, Analog
+from ev3devlight.sensors import Gyro
 from ev3devlight.motors import Motor
 from ev3devlight.brick import Battery
-from filters import Highpass, Differentiator, Integrator, Calibrator
+from filters import Highpass, Differentiator, Integrator
 
 # Configure motors
 left = Motor('outD')
@@ -25,9 +25,11 @@ initial_bias = 0
 
 # Configure filters
 looptime = 0.02
-highpass = Highpass(looptime, initial_bias, 0.02)
+rate_highpass = Highpass(looptime, initial_bias, 0.02)
 differentiator = Differentiator(looptime, 5)
-integrator = Integrator(looptime)
+rate_integrator = Integrator(looptime)
+angle_integrator = Integrator(looptime)
+distance_integrator = Integrator(looptime)
 
 # Parameters
 deg2rad = 180/3.14
@@ -36,13 +38,12 @@ cm_per_degree = 3.14/180*wheel_diameter/2
 busytime = 0.005
 
 # Control gains
-gain_angle = 70
 gain_rate = 1
+gain_angle = 70
+gain_angle_sum = 2
+gain_speed = 2.7+0.7+0.7
 gain_distance = 14
-gain_speed = 2.7
-
-# Initial conditions
-angle = 0
+gain_distance_sum = 2
 
 # Main loop
 while True:
@@ -50,19 +51,23 @@ while True:
     start = time()
 
     # Body angle
-    rate = highpass.filter(gyro.rate)
-    angle = integrator.integral(rate)
+    rate = rate_highpass.filter(gyro.rate)
+    angle = rate_integrator.integral(rate)
+    angle_sum = angle_integrator.integral(angle)
 
     # Wheel translation
     average_motor_degrees = (right.position + left.position)/2
     distance = average_motor_degrees * cm_per_degree
+    distance_sum = distance_integrator.integral(distance)
     speed = differentiator.derivative(distance)
 
     # Control signal
-    duty = (gain_angle*angle +
-            gain_rate*rate +
+    duty = (gain_rate*rate +
+            gain_angle*angle +
+            gain_angle_sum*angle_sum +
+            gain_speed*speed +
             gain_distance*distance +
-            gain_speed*speed)*battery_scaling
+            gain_distance_sum*distance_sum)*battery_scaling
 
     # Motor actuation
     left.duty(duty)
