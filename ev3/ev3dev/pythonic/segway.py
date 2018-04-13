@@ -2,11 +2,11 @@
 """Segway program."""
 
 # Imports
-from time import sleep, time
 from ev3devlight.sensors import Gyro
 from ev3devlight.motors import Motor
-from ev3devlight.brick import Battery
+from ev3devlight.brick import Battery, print_vscode
 from filters import Highpass, Differentiator, Integrator
+from control import LoopTimer
 
 # Configure motors
 left = Motor('outD')
@@ -23,36 +23,38 @@ battery_scaling = nominal / battery.voltage
 gyro = Gyro('in2', read_rate=True, read_angle=False, calibrate=True)
 
 # Configure highpass filters
-looptime = 0.02
-rate_highpass = Highpass(looptime, 0, 0.02)
-angle_highpass = Highpass(looptime, 0, 0.02)
+loop_time = 0.02
+rate_highpass = Highpass(loop_time, 0, 0.02)
+angle_highpass = Highpass(loop_time, 0, 0.02)
 
 # Angle rate and double integrator
-rate_integrator = Integrator(looptime)
-angle_integrator = Integrator(looptime)
+rate_integrator = Integrator(loop_time)
+angle_integrator = Integrator(loop_time)
 
 # Position differentiator and integrator
-distance_integrator = Integrator(looptime)
-distance_differentiator = Differentiator(looptime, 5)
+distance_integrator = Integrator(loop_time)
+distance_differentiator = Differentiator(loop_time, 5)
 
 # Parameters
 deg2rad = 180/3.14
 wheel_diameter = 4.32
 cm_per_degree = 3.14/180*wheel_diameter/2
-busytime = 0.005
 
 # Control gains
 gain_rate = 1
 gain_angle = 70
 gain_angle_sum = 2
-gain_speed = 4.1
+gain_speed = 4
 gain_distance = 14
-gain_distance_sum = 2
+gain_distance_sum = 5
+
+# Loop timer
+timer = LoopTimer(loop_time)
 
 # Main loop
 while True:
     # Loop start
-    start = time()
+    timer.loop_start()
 
     # Body angle
     rate = rate_highpass.filter(gyro.rate)
@@ -78,5 +80,12 @@ while True:
     right.duty(duty)
 
     # Sleep until loop complete
-    while time()-start < looptime:
-        sleep(0.002)
+    timer.wait_for_completion()
+
+    if timer.loops > 500:
+        break
+
+left.duty(0)
+right.duty(0)
+print_vscode(timer.loop_average*1000)
+print_vscode(timer.busy_average*1000)
