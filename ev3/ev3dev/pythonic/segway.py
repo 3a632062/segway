@@ -20,7 +20,7 @@ nominal = 8
 battery_scaling = nominal / battery.voltage
 
 # Configure and calibrate LEGO Gyro
-gyro = Gyro('in2', read_rate=True, read_angle=False, calibrate=True)
+gyro = Gyro('in2', read_rate=True, read_angle=False, calibrate=False)
 
 # Configure highpass filters
 loop_time = 0.02
@@ -33,7 +33,7 @@ angle_integrator = Integrator(loop_time)
 
 # Position differentiator and integrator
 distance_integrator = Integrator(loop_time)
-distance_differentiator = Differentiator(loop_time, 5)
+distance_differentiator = Differentiator(loop_time, 15)
 
 # Parameters
 deg2rad = 180/3.14
@@ -44,8 +44,8 @@ cm_per_degree = 3.14/180*wheel_diameter/2
 gain_rate = 1
 gain_angle = 70
 gain_angle_sum = 2
-gain_speed = 4
-gain_distance = 14
+gain_speed = 6
+gain_distance = 16
 gain_distance_sum = 5
 
 # Loop timer
@@ -81,11 +81,3 @@ while True:
 
     # Sleep until loop complete
     timer.wait_for_completion()
-
-    if timer.loops > 500:
-        break
-
-left.duty(0)
-right.duty(0)
-print_vscode(timer.loop_average*1000)
-print_vscode(timer.busy_average*1000)
