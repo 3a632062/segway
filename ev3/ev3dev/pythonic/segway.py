@@ -4,7 +4,7 @@
 # Imports
 from ev3devlight.sensors import Gyro
 from ev3devlight.motors import Motor
-from ev3devlight.brick import Battery, print_vscode
+from ev3devlight.brick import Battery
 from filters import Highpass, Differentiator, Integrator
 from control import LoopTimer
 
@@ -32,8 +32,9 @@ rate_integrator = Integrator(loop_time)
 angle_integrator = Integrator(loop_time)
 
 # Position differentiator and integrator
-distance_integrator = Integrator(loop_time)
 distance_differentiator = Differentiator(loop_time, 15)
+distance_error_integrator = Integrator(loop_time)
+reference_speed_integrator = Integrator(loop_time)
 
 # Parameters
 deg2rad = 180/3.14
@@ -45,8 +46,8 @@ gain_rate = 1
 gain_angle = 70
 gain_angle_sum = 2
 gain_speed = 6
-gain_distance = 16
-gain_distance_sum = 5
+gain_distance_error = 16
+gain_distance_error_sum = 5
 
 # Loop timer
 timer = LoopTimer(loop_time)
@@ -61,23 +62,33 @@ while True:
     angle = angle_highpass.filter(rate_integrator.integral(rate))
     angle_sum = angle_integrator.integral(angle)
 
+    # User Control
+    reference_speed = 0
+    steer_rate = 10
+
     # Wheel translation
     average_motor_degrees = (right.position + left.position)/2
     distance = average_motor_degrees * cm_per_degree
-    distance_sum = distance_integrator.integral(distance)
-    speed = distance_differentiator.derivative(distance)
+    speed_error = distance_differentiator.derivative(distance) - reference_speed
+
+    # Position tracking
+    reference_distance = reference_speed_integrator.integral(reference_speed)
+    distance_error = distance - reference_distance
+    distance_error_sum = distance_error_integrator.integral(distance_error)
 
     # Control signal
-    duty = (gain_rate*rate +
-            gain_angle*angle +
-            gain_angle_sum*angle_sum +
-            gain_speed*speed +
-            gain_distance*distance +
-            gain_distance_sum*distance_sum)*battery_scaling
+    duty = battery_scaling*(
+        gain_rate*rate +
+        gain_angle*angle +
+        gain_angle_sum*angle_sum +
+        gain_speed*speed_error +
+        gain_distance_error*distance_error +
+        gain_distance_error_sum*distance_error_sum
+    )
 
     # Motor actuation
-    left.duty(duty)
-    right.duty(duty)
+    left.duty(duty-steer_rate)
+    right.duty(duty+steer_rate)
 
     # Sleep until loop complete
     timer.wait_for_completion()
