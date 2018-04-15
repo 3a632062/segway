@@ -25,23 +25,6 @@ gyro = Gyro('in2', read_rate=True, read_angle=False, calibrate=False)
 # Configure remote control
 remote = Remote('in4')
 
-# User speed and steering control
-forward = 5  # cm per second
-backward = -5
-stationary = 0
-right = -10  # percent duty cycle
-left = 10
-straight = 0
-
-# Controls for each button press
-actions = {
-    'LEFT_UP': (stationary, left),
-    'RIGHT_UP': (stationary, right),
-    'BOTH_UP': (forward, straight),
-    'BOTH_DOWN': (backward, straight)
-}
-allowed_buttons = actions.keys()
-
 # Configure highpass filters
 loop_time = 0.02
 rate_highpass = Highpass(loop_time, 0, 0.02)
@@ -72,26 +55,47 @@ gain_distance_error_sum = 5
 # Loop timer
 timer = LoopTimer(loop_time)
 
+
+def user_control():
+    """Get user defined desired speed and turnrate."""
+    # User drive speeds (centimeter per sec)
+    forward, stationary, backward = 5, 0, -5
+
+    # Steering values (duty percentage)
+    left, straight, right = 15, 0, -15
+
+    # Controls for each remote button press
+    actions = {
+        'NONE': (stationary, straight),
+        'LEFT_UP': (forward/2, right),
+        'LEFT_DOWN': (backward/2, left),
+        'RIGHT_UP': (forward/2, left),
+        'RIGHT_DOWN': (backward/2, right),
+        'BOTH_UP': (forward, straight),
+        'LEFT_UP_RIGHT_DOWN': (stationary, right),
+        'LEFT_DOWN_RIGHT_UP': (stationary, left),
+        'BOTH_DOWN': (backward, straight),
+        'BEACON': (stationary, straight),
+        'BOTH_LEFT': (stationary, straight),
+        'BOTH_RIGHT': (stationary, straight)
+    }
+
+    # return (speed, turn_rate) associated with button combination
+    return actions[remote.button]
+
+
 # Main loop
 while True:
     # Loop start
     timer.loop_start()
 
+    # User control
+    reference_speed, turn_rate = user_control()
+
     # Body angle
     rate = rate_highpass.filter(gyro.rate)
     angle = angle_highpass.filter(rate_integrator.integral(rate))
     angle_sum = angle_integrator.integral(angle)
-
-    # Read infrared sensor button
-    button = remote.button
-
-    # Choose a speed and turnrate given the button
-    if button in allowed_buttons:
-        reference_speed, turn_rate = actions[button]
-    else:
-        # If no control action is specified, balance in place
-        reference_speed = 0
-        turn_rate = 0
 
     # Wheel translation
     average_motor_degrees = (right_motor.position + left_motor.position)/2
