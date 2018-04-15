@@ -2,17 +2,17 @@
 """Segway program."""
 
 # Imports
-from ev3devlight.sensors import Gyro
+from ev3devlight.sensors import Gyro, Remote
 from ev3devlight.motors import Motor
 from ev3devlight.brick import Battery
 from filters import Highpass, Differentiator, Integrator
 from control import LoopTimer
 
 # Configure motors
-left = Motor('outD')
-left.activate_duty_mode()
-right = Motor('outA')
-right.activate_duty_mode()
+left_motor = Motor('outD')
+left_motor.activate_duty_mode()
+right_motor = Motor('outA')
+right_motor.activate_duty_mode()
 
 # Battery
 battery = Battery()
@@ -21,6 +21,26 @@ battery_scaling = nominal / battery.voltage
 
 # Configure and calibrate LEGO Gyro
 gyro = Gyro('in2', read_rate=True, read_angle=False, calibrate=False)
+
+# Configure remote control
+remote = Remote('in4')
+
+# User speed and steering control
+forward = 5  # cm per second
+backward = -5
+stationary = 0
+right = -10  # percent duty cycle
+left = 10
+straight = 0
+
+# Controls for each button press
+actions = {
+    'LEFT_UP': (stationary, left),
+    'RIGHT_UP': (stationary, right),
+    'BOTH_UP': (forward, straight),
+    'BOTH_DOWN': (backward, straight)
+}
+allowed_buttons = actions.keys()
 
 # Configure highpass filters
 loop_time = 0.02
@@ -62,14 +82,21 @@ while True:
     angle = angle_highpass.filter(rate_integrator.integral(rate))
     angle_sum = angle_integrator.integral(angle)
 
-    # User Control
-    reference_speed = 0
-    steer_rate = 10
+    # Read infrared sensor button
+    button = remote.button
+
+    # Choose a speed and turnrate given the button
+    if button in allowed_buttons:
+        reference_speed, turn_rate = actions[button]
+    else:
+        # If no control action is specified, balance in place
+        reference_speed = 0
+        turn_rate = 0
 
     # Wheel translation
-    average_motor_degrees = (right.position + left.position)/2
+    average_motor_degrees = (right_motor.position + left_motor.position)/2
     distance = average_motor_degrees * cm_per_degree
-    speed_error = distance_differentiator.derivative(distance) - reference_speed
+    speed = distance_differentiator.derivative(distance)
 
     # Position tracking
     reference_distance = reference_speed_integrator.integral(reference_speed)
@@ -81,14 +108,14 @@ while True:
         gain_rate*rate +
         gain_angle*angle +
         gain_angle_sum*angle_sum +
-        gain_speed*speed_error +
+        gain_speed*speed +
         gain_distance_error*distance_error +
         gain_distance_error_sum*distance_error_sum
     )
 
     # Motor actuation
-    left.duty(duty-steer_rate)
-    right.duty(duty+steer_rate)
+    left_motor.duty(duty-turn_rate)
+    right_motor.duty(duty+turn_rate)
 
     # Sleep until loop complete
     timer.wait_for_completion()
