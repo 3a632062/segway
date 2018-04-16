@@ -1,12 +1,19 @@
 #!/usr/bin/env micropython
-"""Segway program."""
+"""Main balancing-robot program.
+
+Modify user.py to specify high-level control of the robot, such
+as driving around based on a remote control or to avoid obstacles.
+"""
 
 # Imports
-from ev3devlight.sensors import Gyro, Remote
+from ev3devlight.sensors import Gyro
 from ev3devlight.motors import Motor
 from ev3devlight.brick import Battery
 from filters import Highpass, Differentiator, Integrator
 from control import LoopTimer
+
+# User functions
+from user import user_init, user_control
 
 # Configure motors
 left_motor = Motor('outD')
@@ -21,9 +28,6 @@ battery_scaling = nominal / battery.voltage
 
 # Configure and calibrate LEGO Gyro
 gyro = Gyro('in2', read_rate=True, read_angle=False, calibrate=False)
-
-# Configure remote control
-remote = Remote('in4')
 
 # Configure highpass filters
 loop_time = 0.02
@@ -52,45 +56,22 @@ gain_speed = 6
 gain_distance_error = 16
 gain_distance_error_sum = 5
 
+# Run user initalization function and store initialization data
+user_data = user_init()
+
 # Loop timer
 timer = LoopTimer(loop_time)
-
-
-def user_control():
-    """Get user defined desired speed and turnrate."""
-    # User drive speeds (centimeter per sec)
-    forward, stationary, backward = 5, 0, -5
-
-    # Steering values (duty percentage)
-    left, straight, right = 15, 0, -15
-
-    # Controls for each remote button press
-    actions = {
-        'NONE': (stationary, straight),
-        'LEFT_UP': (forward/2, right),
-        'LEFT_DOWN': (backward/2, left),
-        'RIGHT_UP': (forward/2, left),
-        'RIGHT_DOWN': (backward/2, right),
-        'BOTH_UP': (forward, straight),
-        'LEFT_UP_RIGHT_DOWN': (stationary, right),
-        'LEFT_DOWN_RIGHT_UP': (stationary, left),
-        'BOTH_DOWN': (backward, straight),
-        'BEACON': (stationary, straight),
-        'BOTH_LEFT': (stationary, straight),
-        'BOTH_RIGHT': (stationary, straight)
-    }
-
-    # return (speed, turn_rate) associated with button combination
-    return actions[remote.button]
-
 
 # Main loop
 while True:
     # Loop start
     timer.loop_start()
 
-    # User control
-    reference_speed, turn_rate = user_control()
+    # Selection of desired speed and turn_rate, based on e.g.
+    # a remote control or some desired autonomous behavior.
+    # If you just want to balance in place, you can omit the user
+    # function and set reference_speed and turn_rate to zero.
+    reference_speed, turn_rate = user_control(user_data)
 
     # Body angle
     rate = rate_highpass.filter(gyro.rate)
